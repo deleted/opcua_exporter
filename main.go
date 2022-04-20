@@ -44,8 +44,7 @@ type NodeConfig struct {
 // MsgHandler interface can convert OPC UA Variant objects
 // and emit prometheus metrics
 type MsgHandler interface {
-	FloatValue(v ua.Variant) (float64, error) // metric value to be emitted
-	Handle(v ua.Variant) error                // compute the metric value and publish it
+	Handle(v ua.Variant) error // compute the metric value and publish it
 }
 
 // HandlerMap maps OPC UA channel names to MsgHandlers
@@ -142,9 +141,9 @@ func setupMonitor(ctx context.Context, client *opcua.Client, handlerMap HandlerM
 		nodeList = append(nodeList, nodeName)
 	}
 
-	ch := make(chan *monitor.DataChangeMessage, bufferSize)
+	msgChan := make(chan *monitor.DataChangeMessage, bufferSize)
 	params := opcua.SubscriptionParameters{Interval: time.Second}
-	sub, err := m.ChanSubscribe(ctx, &params, ch, nodeList...)
+	sub, err := m.ChanSubscribe(ctx, &params, msgChan, nodeList...)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -157,7 +156,7 @@ func setupMonitor(ctx context.Context, client *opcua.Client, handlerMap HandlerM
 		select {
 		case <-ctx.Done():
 			return
-		case msg := <-ch:
+		case msg := <-msgChan:
 			if msg.Error != nil {
 				log.Printf("[error ] sub=%d error=%s", sub.SubscriptionID(), msg.Error)
 			} else if msg.Value == nil {
