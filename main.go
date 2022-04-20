@@ -23,6 +23,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const exporterNamespace = "opcua_exporter"
+
 var port = flag.Int("port", 9686, "Port to publish metrics on.")
 var endpoint = flag.String("endpoint", "opc.tcp://localhost:4096", "OPC UA Endpoint to connect to.")
 var promPrefix = flag.String("prom-prefix", "", "Prefix will be appended to emitted prometheus metrics")
@@ -61,9 +63,8 @@ var messageCounter prometheus.Counter
 var eventSummaryCounter *EventSummaryCounter
 
 func init() {
-	subsystem := "opcua_exporter"
 	uptimeGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Subsystem: subsystem,
+		Namespace: exporterNamespace,
 		Name:      "uptime_seconds",
 		Help:      "Time in seconds since the OPCUA exporter started",
 	})
@@ -71,7 +72,7 @@ func init() {
 	prometheus.MustRegister(uptimeGauge)
 
 	messageCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Subsystem: subsystem,
+		Namespace: exporterNamespace,
 		Name:      "message_count",
 		Help:      "Total number of OPCUA channel updates received by the exporter",
 	})
@@ -224,6 +225,7 @@ func createHandler(nodeConfig NodeConfig) MsgHandler {
 		metricName = fmt.Sprintf("%s_%s", *promPrefix, metricName)
 	}
 	g := prometheus.NewGauge(prometheus.GaugeOpts{
+		// TODO: user-specified namespace from flags?
 		Name: metricName,
 		Help: "From OPC UA",
 	})
